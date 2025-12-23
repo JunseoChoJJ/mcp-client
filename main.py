@@ -1,5 +1,8 @@
 import asyncio
 from typing import Optional
+from contextlib import AsyncExitStack
+
+
 from mcp import ClientSession
 from mcp.client.streamable_http import streamable_http_client
 
@@ -8,9 +11,14 @@ class MCPHttpClient:
     def __init__(self, serverUrl: str):
         self.serverUrl = serverUrl
         self.session: Optional[ClientSession] = None
+        self.exitStack = AsyncExitStack()
 
     async def connect(self):
-        transport = await streamable_http_client(self.serverUrl)
+        # ✅ async context manager로 transport 열기
+        transport = await self.exitStack.enter_async_context(
+            streamable_http_client(self.serverUrl)
+        )
+
         self.session = ClientSession(*transport)
         await self.session.initialize()
 
