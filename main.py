@@ -20,7 +20,9 @@ class MCPHttpClient:
         )
 
         # ClientSession에는 read/write만 전달
-        self.session = ClientSession(read_stream, write_stream)
+        self.session = await self.exitStack.enter_async_context(
+            ClientSession(read_stream, write_stream)
+        )
         await self.session.initialize()
 
         tools = (await self.session.list_tools()).tools
@@ -40,7 +42,8 @@ class MCPHttpClient:
                 "major": major,
             },
         )
-    
+    async def close(self):
+        await self.exitStack.aclose()
         
 
 async def main():
@@ -48,12 +51,14 @@ async def main():
     await client.connect()
 
     result = await client.getCompetitionRate(
-        "가천대학교",
-        "경영학과",
+        "가야대학교",
+        "간호학과",
     )
 
     print("\n📦 Tool response:")
     print(result)
+
+    await client.close()
 
 
 if __name__ == "__main__":
