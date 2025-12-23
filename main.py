@@ -14,18 +14,20 @@ class MCPHttpClient:
         self.exitStack = AsyncExitStack()
 
     async def connect(self):
-        # ✅ async context manager로 transport 열기
-        transport = await self.exitStack.enter_async_context(
+        # streamable_http_client는 (read, write, callback)을 반환
+        read_stream, write_stream, _ = await self.exitStack.enter_async_context(
             streamable_http_client(self.serverUrl)
         )
 
-        self.session = ClientSession(*transport)
+        # ClientSession에는 read/write만 전달
+        self.session = ClientSession(read_stream, write_stream)
         await self.session.initialize()
 
         tools = (await self.session.list_tools()).tools
         print("✅ Connected MCP tools:")
         for tool in tools:
             print(f"- {tool.name}")
+
 
     async def getCompetitionRate(self, univName: str, major: str):
         if not self.session:
@@ -38,7 +40,8 @@ class MCPHttpClient:
                 "major": major,
             },
         )
-
+    
+        
 
 async def main():
     client = MCPHttpClient("http://127.0.0.1:8000/mcp")
